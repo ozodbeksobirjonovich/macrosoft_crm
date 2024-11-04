@@ -1,0 +1,25 @@
+<!-- templates/permission_denied.html -->
+
+{% extends "layout.html" %}
+{% load static %}
+
+{% block title %}Ruxsat Rad Etildi{% endblock %}
+
+{% block body %}
+
+    <!-- Asosiy Kontent -->
+    <div class="container mt-5">
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">Ruxsat Rad Etildi</h4>
+            <p>Ushbu sahifaga kirish uchun yetarli ruxsatingiz yo'q.</p>
+            <hr>
+            <p class="mb-0">
+                Agar bu xato deb hisoblasangiz, administrator bilan bog'laning.
+            </p>
+        </div>
+        <div class="d-flex justify-content-center">
+            <a href="{% url 'admin_panel:dashboard' %}" class="btn btn-primary">Boshqaruv Paneliga Qaytish</a>
+        </div>
+    </div>
+
+{% endblock %}

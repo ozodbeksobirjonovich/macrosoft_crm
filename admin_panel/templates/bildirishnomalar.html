@@ -1,0 +1,109 @@
+{% extends "layout.html" %}
+
+{% block title %}Bildirishnomalar{% endblock %}
+
+{% block body %}
+
+    <!-- Main Content -->
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Bildirishnomalar</h2>
+            <!-- Button trigger modal -->
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addNotificationModal">
+              Bildirishnoma Qo'shish
+            </button>
+        </div>
+        <table class="table table-striped table-responsive">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Sarlavha</th>
+                    <th>Kontent</th>
+                    <th>Sana</th>
+                    <th>Amallar</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Misol Ma'lumot -->
+                <tr>
+                    <td>1</td>
+                    <td>Yangi Kurs</td>
+                    <td>2024-yil sentabr oyida yangi kurs boshlanadi.</td>
+                    <td>2024-04-15</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editNotificationModal">Tahrirlash</button>
+                        <button class="btn btn-sm btn-danger">O'chirish</button>
+                    </td>
+                </tr>
+                <!-- Qo'shimcha ma'lumotlarni shu yerga qo'shing -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Notification Modal -->
+    <div class="modal fade" id="addNotificationModal" tabindex="-1" aria-labelledby="addNotificationModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form>
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addNotificationModalLabel">Bildirishnoma Qo'shish</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <!-- Form fields -->
+              <div class="mb-3">
+                <label for="title" class="form-label">Sarlavha</label>
+                <input type="text" class="form-control" id="title" required>
+              </div>
+              <div class="mb-3">
+                <label for="content" class="form-label">Kontent</label>
+                <textarea class="form-control" id="content" rows="3" required></textarea>
+              </div>
+              <div class="mb-3">
+                <label for="date" class="form-label">Sana</label>
+                <input type="date" class="form-control" id="date" required>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
+              <button type="submit" class="btn btn-primary">Saqlash</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Notification Modal (similar to Add) -->
+    <div class="modal fade" id="editNotificationModal" tabindex="-1" aria-labelledby="editNotificationModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form>
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="editNotificationModalLabel">Bildirishnoma Tahrirlash</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <!-- Form fields pre-filled with existing data -->
+              <div class="mb-3">
+                <label for="edit-title" class="form-label">Sarlavha</label>
+                <input type="text" class="form-control" id="edit-title" value="Yangi Kurs" required>
+              </div>
+              <div class="mb-3">
+                <label for="edit-content" class="form-label">Kontent</label>
+                <textarea class="form-control" id="edit-content" rows="3" required>2024-yil sentabr oyida yangi kurs boshlanadi.</textarea>
+              </div>
+              <div class="mb-3">
+                <label for="edit-date" class="form-label">Sana</label>
+                <input type="date" class="form-control" id="edit-date" value="2024-04-15" required>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
+              <button type="submit" class="btn btn-primary">Saqlash</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+{% endblock %}

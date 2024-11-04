@@ -1,0 +1,198 @@
+{% extends "layout.html" %}
+
+{% block title %}Davomatlar{% endblock %}
+
+{% block body %}
+
+    <!-- Main Content -->
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Davomatlar</h2>
+            <!-- Button trigger modal -->
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAttendanceModal">
+              Davomat Qo'shish
+            </button>
+        </div>
+        <table class="table table-striped table-responsive">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Talaba</th>
+                    <th>Guruh</th>
+                    <th>Sana</th>
+                    <th>Davomat</th>
+                    <th>Amallar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for attendance in attendances %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ attendance.student.fullname }}</td>
+                    <td>{{ attendance.group.name }}</td>
+                    <td>{{ attendance.date }}</td>
+                    <td>
+                        {% if attendance.present %}
+                            Keldi
+                        {% else %}
+                            Kelmadi
+                        {% endif %}
+                    </td>
+                    <td>
+                        <!-- Button trigger edit modal -->
+                        <button class="btn btn-sm btn-warning" data-bs-toggle="modal"
+                            data-bs-target="#editAttendanceModal{{ attendance.id }}">Tahrirlash</button>
+                        <!-- Delete button -->
+                        <form action="{% url 'admin_panel:delete_attendance' attendance.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Haqiqatan o\'chirmoqchimisiz?')">O'chirish</button>
+                        </form>
+                    </td>
+                </tr>
+
+                <!-- Edit Attendance Modal -->
+                <div class="modal fade" id="editAttendanceModal{{ attendance.id }}" tabindex="-1" aria-labelledby="editAttendanceModalLabel{{ attendance.id }}" aria-hidden="true">
+                  <div class="modal-dialog">
+                    <form action="{% url 'admin_panel:edit_attendance' attendance.id %}" method="post">
+                      {% csrf_token %}
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title" id="editAttendanceModalLabel{{ attendance.id }}">Davomat Tahrirlash</h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                          <!-- Form fields pre-filled with existing data -->
+                          <div class="mb-3">
+                            <label for="edit-present{{ attendance.id }}" class="form-label">Davomat</label>
+                            <select class="form-control" id="edit-present{{ attendance.id }}" name="present" required>
+                              <option value="1" {% if attendance.present %}selected{% endif %}>Keldi</option>
+                              <option value="0" {% if not attendance.present %}selected{% endif %}>Kelmadi</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
+                          <button type="submit" class="btn btn-primary">Saqlash</button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">Hech qanday davomat topilmadi.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Attendance Modal -->
+    <div class="modal fade" id="addAttendanceModal" tabindex="-1" aria-labelledby="addAttendanceModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg"> <!-- Increased size for student list -->
+        <form action="{% url 'admin_panel:add_attendance' %}" method="post">
+          {% csrf_token %}
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addAttendanceModalLabel">Davomat Qo'shish</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <!-- Form fields -->
+              <div class="mb-3">
+                <label for="group" class="form-label">Guruh</label>
+                <select class="form-control" id="group" name="group" required>
+                  <option value="">Tanlang</option>
+                  {% for group in groups %}
+                    <option value="{{ group.id }}">{{ group.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="date" class="form-label">Sana</label>
+                <input type="date" class="form-control" id="date" name="date" required>
+              </div>
+              <div class="mb-3" id="students-container" style="display: none;">
+                <label class="form-label">Talabalar</label>
+                <div id="students-list" class="form-check">
+                  <!-- Dynamic student checkboxes will be injected here -->
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
+              <button type="submit" class="btn btn-primary">Saqlash</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const groupSelect = document.getElementById('group');
+        const studentsContainer = document.getElementById('students-container');
+        const studentsList = document.getElementById('students-list');
+
+        groupSelect.addEventListener('change', function() {
+          const groupId = this.value;
+          const dateInput = document.getElementById('date').value;
+
+          if (groupId) {
+            // Fetch students via AJAX
+            fetch(`/davomatlar/get_students/${groupId}/`)
+              .then(response => response.json())
+              .then(data => {
+                if (data.students) {
+                  studentsList.innerHTML = ''; // Clear previous students
+                  data.students.forEach(student => {
+                    const div = document.createElement('div');
+                    div.classList.add('form-check');
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.classList.add('form-check-input');
+                    checkbox.type = 'checkbox';
+                    checkbox.name = 'present_students';
+                    checkbox.value = student.id;
+                    checkbox.id = `student_${student.id}`;
+                    checkbox.checked = true; // Default to present
+
+                    const label = document.createElement('label');
+                    label.classList.add('form-check-label');
+                    label.htmlFor = `student_${student.id}`;
+                    label.innerText = student.fullname;
+
+                    div.appendChild(checkbox);
+                    div.appendChild(label);
+                    studentsList.appendChild(div);
+                  });
+                  studentsContainer.style.display = 'block';
+                } else {
+                  studentsList.innerHTML = '<p>Talabalarni olishda xato yuz berdi.</p>';
+                  studentsContainer.style.display = 'block';
+                }
+              })
+              .catch(error => {
+                console.error('Error fetching students:', error);
+                studentsList.innerHTML = '<p>Talabalarni olishda xato yuz berdi.</p>';
+                studentsContainer.style.display = 'block';
+              });
+          } else {
+            studentsContainer.style.display = 'none';
+            studentsList.innerHTML = '';
+          }
+        });
+
+        // Optional: Hide students list if no group is selected
+        const dateInput = document.getElementById('date');
+        dateInput.addEventListener('change', function() {
+          if (!groupSelect.value) {
+            studentsContainer.style.display = 'none';
+            studentsList.innerHTML = '';
+          }
+        });
+      });
+    </script>
+    {% endblock %}
+
+

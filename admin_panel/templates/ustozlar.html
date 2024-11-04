@@ -1,0 +1,129 @@
+{% extends "layout.html" %}
+
+{% block title %}Ustozlar{% endblock %}
+
+{% block body %}
+<!-- Display Django Messages -->
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<!-- Main Content -->
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Ustozlar</h2>
+        <!-- Button trigger modal -->
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTeacherModal">
+          Ustoz Qo'shish
+        </button>
+    </div>
+    <table class="table table-striped table-responsive">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>To'liq Ism</th>
+                <th>Foto</th>
+                <th>Amallar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for teacher in teachers %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ teacher.fullname }}</td>
+                <td>
+                    {% if teacher.image %}
+                        <img src="{{ teacher.image.url }}" alt="Foto" class="img-thumbnail" width="50">
+                    {% else %}
+                        <img src="https://via.placeholder.com/50" alt="Foto" class="img-thumbnail" width="50">
+                    {% endif %}
+                </td>
+                <td>
+                    <!-- Button trigger edit modal -->
+                    <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editTeacherModal{{ teacher.id }}">Tahrirlash</button>
+                    <!-- Delete button -->
+                    <form action="{% url 'admin_panel:delete_teacher' teacher.id %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Haqiqatan o\'chirmoqchimisiz?')">O'chirish</button>
+                    </form>
+                </td>
+            </tr>
+
+            <!-- Edit Teacher Modal -->
+            <div class="modal fade" id="editTeacherModal{{ teacher.id }}" tabindex="-1" aria-labelledby="editTeacherModalLabel{{ teacher.id }}" aria-hidden="true">
+              <div class="modal-dialog">
+                <form action="{% url 'admin_panel:edit_teacher' teacher.id %}" method="post" enctype="multipart/form-data">
+                  {% csrf_token %}
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="editTeacherModalLabel{{ teacher.id }}">Ustoz Tahrirlash</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                      <!-- Form fields pre-filled with existing data -->
+                      <div class="mb-3">
+                        <label for="edit-fullname{{ teacher.id }}" class="form-label">To'liq Ism</label>
+                        <input type="text" class="form-control" id="edit-fullname{{ teacher.id }}" name="fullname" value="{{ teacher.fullname }}" required>
+                      </div>
+                      <div class="mb-3">
+                        <label for="edit-image{{ teacher.id }}" class="form-label">Foto</label>
+                        <input type="file" class="form-control" id="edit-image{{ teacher.id }}" name="image">
+                        {% if teacher.image %}
+                          <small>Joriy foto:</small><br>
+                          <img src="{{ teacher.image.url }}" alt="Foto" class="img-thumbnail mt-2" width="100">
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
+                      <button type="submit" class="btn btn-primary">Saqlash</button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center">Hech qanday ustoz topilmadi.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Add Teacher Modal -->
+<div class="modal fade" id="addTeacherModal" tabindex="-1" aria-labelledby="addTeacherModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form action="{% url 'admin_panel:add_teacher' %}" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addTeacherModalLabel">Ustoz Qo'shish</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Form fields -->
+          <div class="mb-3">
+            <label for="fullname" class="form-label">To'liq Ism</label>
+            <input type="text" class="form-control" id="fullname" name="fullname" required>
+          </div>
+          <div class="mb-3">
+            <label for="image" class="form-label">Foto</label>
+            <input type="file" class="form-control" id="image" name="image">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
+          <button type="submit" class="btn btn-primary">Saqlash</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

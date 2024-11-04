@@ -1,0 +1,239 @@
+{% extends "layout.html" %}
+
+{% block title %}Guruhlar{% endblock %}
+
+{% block body %}
+<!-- Main Content -->
+<div class="container mt-5">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Guruhlar</h2>
+    <!-- Button trigger modal -->
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addGroupModal">
+      Guruh Qo'shish
+    </button>
+  </div>
+  <table class="table table-striped table-responsive">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Guruh Nomi</th>
+        <th>O'qituvchi</th>
+        <th>Kurs</th>
+        <th>Boshlanish Sana</th>
+        <th>Tugash Sana</th>
+        <th>Dars Vaqti</th>
+        <th>Tarif</th>
+        <th>Amallar</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for group in groups %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ group.name }}</td>
+        <td>{{ group.teacher.fullname }}</td>
+        <td>{{ group.course.name }}</td>
+        <td>{{ group.start_date }}</td>
+        <td>{{ group.end_date }}</td>
+        <td>{{ group.lesson_start_time }} - {{ group.lesson_end_time }}</td>
+        <td>{{ group.tariff.name }} - {{ group.tariff.price }} so'm</td>
+        <td>
+          <!-- Button trigger edit modal -->
+          <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editGroupModal{{ group.id }}">Tahrirlash</button>
+          <!-- Delete button -->
+          <form action="{% url 'admin_panel:delete_group' group.id %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Haqiqatan o\'chirmoqchimisiz?')">O'chirish</button>
+          </form>
+        </td>
+      </tr>
+
+      <!-- Edit Group Modal -->
+      <div class="modal fade" id="editGroupModal{{ group.id }}" tabindex="-1" aria-labelledby="editGroupModalLabel{{ group.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+          <form action="{% url 'admin_panel:edit_group' group.id %}" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="editGroupModalLabel{{ group.id }}">Guruh Tahrirlash</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <!-- Form fields pre-filled with existing data -->
+                <div class="mb-3">
+                  <label for="edit-group-name{{ group.id }}" class="form-label">Guruh Nomi</label>
+                  <input type="text" class="form-control" id="edit-group-name{{ group.id }}" name="name" value="{{ group.name }}" required>
+                </div>
+                <div class="mb-3">
+                  <label for="edit-teacher{{ group.id }}" class="form-label">O'qituvchi</label>
+                  <select class="form-control" id="edit-teacher{{ group.id }}" name="teacher" required>
+                    {% for teacher in teachers %}
+                      <option value="{{ teacher.id }}" {% if teacher == group.teacher %}selected{% endif %}>{{ teacher.fullname }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="edit-course{{ group.id }}" class="form-label">Kurs</label>
+                  <select class="form-control" id="edit-course{{ group.id }}" name="course" required>
+                    {% for course in courses %}
+                      <option value="{{ course.id }}" {% if course == group.course %}selected{% endif %}>{{ course.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="edit-start-date{{ group.id }}" class="form-label">Boshlanish Sana</label>
+                  <input type="date" class="form-control" id="edit-start-date{{ group.id }}" name="start_date" value="{{ group.start_date }}" required>
+                </div>
+                <div class="mb-3">
+                  <label for="edit-end-date{{ group.id }}" class="form-label">Tugash Sana</label>
+                  <input type="date" class="form-control" id="edit-end-date{{ group.id }}" name="end_date" value="{{ group.end_date }}" required>
+                </div>
+                <div class="mb-3">
+                  <label for="edit-lesson-time-start{{ group.id }}" class="form-label">Dars Boshlanish Vaqti</label>
+                  <select class="form-control" id="edit-lesson-time-start{{ group.id }}" name="lesson_start_time" required>
+                    {% for time in time_choices %}
+                      <option value="{{ time }}" {% if time == group.lesson_start_time %}selected{% endif %}>{{ time }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="edit-lesson-time-end{{ group.id }}" class="form-label">Dars Tugash Vaqti</label>
+                  <select class="form-control" id="edit-lesson-time-end{{ group.id }}" name="lesson_end_time" required>
+                    {% for time in time_choices %}
+                      <option value="{{ time }}" {% if time == group.lesson_end_time %}selected{% endif %}>{{ time }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="edit-tariff{{ group.id }}" class="form-label">Tarif</label>
+                  <select class="form-control" id="edit-tariff{{ group.id }}" name="tariff" required>
+                    {% for tariff in tariffs %}
+                      <option value="{{ tariff.id }}" {% if tariff == group.tariff %}selected{% endif %}>{{ tariff.name }} - {{ tariff.price }} so'm</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="edit-days-of-week{{ group.id }}" class="form-label">Hafta Kunlari</label>
+                  <select multiple class="form-control" id="edit-days-of-week{{ group.id }}" name="days_of_week" required>
+                    {% for day in weekdays %}
+                      <option value="{{ day.id }}" {% if day in group.days_of_week.all %}selected{% endif %}>{{ day.get_name_display }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="edit-hours{{ group.id }}" class="form-label">Darslar Soni</label>
+                  <input type="number" class="form-control" id="edit-hours{{ group.id }}" name="hours" value="{{ group.hours }}" required>
+                </div>
+                <div class="mb-3">
+                  <label for="edit-duration{{ group.id }}" class="form-label">Dars Davomiyligi (min)</label>
+                  <input type="number" class="form-control" id="edit-duration{{ group.id }}" name="duration" value="{{ group.duration }}" required>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
+                <button type="submit" class="btn btn-primary">Saqlash</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% empty %}
+      <tr>
+          <td colspan="9" class="text-center">Hech qanday guruh topilmadi.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add Group Modal -->
+<div class="modal fade" id="addGroupModal" tabindex="-1" aria-labelledby="addGroupModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form action="{% url 'admin_panel:add_group' %}" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addGroupModalLabel">Guruh Qo'shish</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Form fields -->
+          <div class="mb-3">
+            <label for="group-name" class="form-label">Guruh Nomi</label>
+            <input type="text" class="form-control" id="group-name" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label for="teacher" class="form-label">O'qituvchi</label>
+            <select class="form-control" id="teacher" name="teacher" required>
+              {% for teacher in teachers %}
+                <option value="{{ teacher.id }}">{{ teacher.fullname }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="course" class="form-label">Kurs</label>
+            <select class="form-control" id="course" name="course" required>
+              {% for course in courses %}
+                <option value="{{ course.id }}">{{ course.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="start-date" class="form-label">Boshlanish Sana</label>
+            <input type="date" class="form-control" id="start-date" name="start_date" required>
+          </div>
+          <div class="mb-3">
+            <label for="end-date" class="form-label">Tugash Sana</label>
+            <input type="date" class="form-control" id="end-date" name="end_date" required>
+          </div>
+          <div class="mb-3">
+            <label for="lesson-time-start" class="form-label">Dars Boshlanish Vaqti</label>
+            <select class="form-control" id="lesson-time-start" name="lesson_start_time" required>
+              {% for time in time_choices %}
+                <option value="{{ time }}">{{ time }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="lesson-time-end" class="form-label">Dars Tugash Vaqti</label>
+            <select class="form-control" id="lesson-time-end" name="lesson_end_time" required>
+              {% for time in time_choices %}
+                <option value="{{ time }}">{{ time }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="tariff" class="form-label">Tarif</label>
+            <select class="form-control" id="tariff" name="tariff" required>
+              {% for tariff in tariffs %}
+                <option value="{{ tariff.id }}">{{ tariff.name }} - {{ tariff.price }} so'm</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="days-of-week" class="form-label">Hafta Kunlari</label>
+            <select multiple class="form-control" id="days-of-week" name="days_of_week" required>
+              {% for day in weekdays %}
+                <option value="{{ day.id }}">{{ day.get_name_display }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="hours" class="form-label">Darslar Soni</label>
+            <input type="number" class="form-control" id="hours" name="hours" required>
+          </div>
+          <div class="mb-3">
+            <label for="duration" class="form-label">Dars Davomiyligi (min)</label>
+            <input type="number" class="form-control" id="duration" name="duration" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
+          <button type="submit" class="btn btn-primary">Saqlash</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

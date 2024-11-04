@@ -1,0 +1,238 @@
+{% extends "layout.html" %}
+{% load static %}  <!-- Ensure static files can be loaded -->
+
+{% block title %}Baholash{% endblock %}
+
+{% block body %}
+
+    <!-- Main Content -->
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Baholashlar</h2>
+            <!-- Button trigger modal -->
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEvaluationModal">
+              Baho Qo'shish
+            </button>
+        </div>
+        <table class="table table-striped table-responsive">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Talaba</th>
+                    <th>Guruh</th>
+                    <th>Sana</th>
+                    <th>Baho</th>
+                    <th>Fikr-mulohaza</th>
+                    <th>Amallar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for evaluation in evaluations %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ evaluation.student.fullname }}</td>
+                    <td>{{ evaluation.group.name }}</td>
+                    <td>{{ evaluation.date }}</td>
+                    <td>{{ evaluation.score }}</td>
+                    <td>{{ evaluation.feedback }}</td>
+                    <td>
+                        <!-- Button trigger edit modal -->
+                        <button class="btn btn-sm btn-warning edit-evaluation-btn" data-bs-toggle="modal"
+                            data-bs-target="#editEvaluationModal{{ evaluation.id }}"
+                            data-group-id="{{ evaluation.group.id }}"
+                            data-student-id="{{ evaluation.student.id }}"
+                            data-date="{{ evaluation.date }}"
+                            data-score="{{ evaluation.score }}"
+                            data-feedback="{{ evaluation.feedback }}">
+                            Tahrirlash
+                        </button>
+                        <!-- Delete button -->
+                        <form action="{% url 'admin_panel:delete_evaluation' evaluation.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Haqiqatan o\'chirmoqchimisiz?')">O'chirish</button>
+                        </form>
+                    </td>
+                </tr>
+
+                <!-- Edit Evaluation Modal -->
+                <div class="modal fade" id="editEvaluationModal{{ evaluation.id }}" tabindex="-1" aria-labelledby="editEvaluationModalLabel{{ evaluation.id }}" aria-hidden="true">
+                  <div class="modal-dialog">
+                    <form action="{% url 'admin_panel:edit_evaluation' evaluation.id %}" method="post">
+                      {% csrf_token %}
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title" id="editEvaluationModalLabel{{ evaluation.id }}">Baho Tahrirlash</h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                          <!-- Form fields pre-filled with existing data -->
+                          <div class="mb-3">
+                            <label for="edit-evaluation-group{{ evaluation.id }}" class="form-label">Guruh</label>
+                            <select class="form-select edit-evaluation-group" id="edit-evaluation-group{{ evaluation.id }}" name="group" required>
+                              <option selected disabled>Guruhni tanlang</option>
+                              {% for group in groups %}
+                                <option value="{{ group.id }}" {% if group.id == evaluation.group.id %}selected{% endif %}>{{ group.name }}</option>
+                              {% endfor %}
+                            </select>
+                          </div>
+                          <div class="mb-3">
+                            <label for="edit-evaluation-student{{ evaluation.id }}" class="form-label">Talaba</label>
+                            <select class="form-select edit-evaluation-student" id="edit-evaluation-student{{ evaluation.id }}" name="student" required>
+                              <option selected disabled>Talabani tanlang</option>
+                              <!-- Students will be populated via JavaScript -->
+                            </select>
+                          </div>
+                          <div class="mb-3">
+                            <label for="edit-evaluation-date{{ evaluation.id }}" class="form-label">Sana</label>
+                            <input type="date" class="form-control" id="edit-evaluation-date{{ evaluation.id }}" name="date" value="{{ evaluation.date }}" required>
+                          </div>
+                          <div class="mb-3">
+                            <label for="edit-evaluation-score{{ evaluation.id }}" class="form-label">Baho</label>
+                            <input type="number" class="form-control" id="edit-evaluation-score{{ evaluation.id }}" name="score" min="1" max="10" value="{{ evaluation.score }}" required>
+                          </div>
+                          <div class="mb-3">
+                            <label for="edit-evaluation-feedback{{ evaluation.id }}" class="form-label">Fikr-mulohaza</label>
+                            <textarea class="form-control" id="edit-evaluation-feedback{{ evaluation.id }}" name="feedback" rows="3">{{ evaluation.feedback }}</textarea>
+                          </div>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
+                          <button type="submit" class="btn btn-primary">Saqlash</button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">Hech qanday baholar topilmadi.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Evaluation Modal -->
+    <div class="modal fade" id="addEvaluationModal" tabindex="-1" aria-labelledby="addEvaluationModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form action="{% url 'admin_panel:add_evaluation' %}" method="post">
+          {% csrf_token %}
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addEvaluationModalLabel">Baho Qo'shish</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <!-- Form fields -->
+              <div class="mb-3">
+                <label for="evaluation-group" class="form-label">Guruh</label>
+                <select class="form-select" id="evaluation-group" name="group" required>
+                  <option selected disabled>Guruhni tanlang</option>
+                  {% for group in groups %}
+                    <option value="{{ group.id }}">{{ group.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="evaluation-student" class="form-label">Talaba</label>
+                <select class="form-select" id="evaluation-student" name="student" required>
+                  <option selected disabled>Talabani tanlang</option>
+                  <!-- Dinamik ravishda talabalar qo'shiladi -->
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="evaluation-date" class="form-label">Sana</label>
+                <input type="date" class="form-control" id="evaluation-date" name="date" required>
+              </div>
+              <div class="mb-3">
+                <label for="evaluation-score" class="form-label">Baho</label>
+                <input type="number" class="form-control" id="evaluation-score" name="score" min="0" max="10" required>
+              </div>
+              <div class="mb-3">
+                <label for="evaluation-feedback" class="form-label">Fikr-mulohaza</label>
+                <textarea class="form-control" id="evaluation-feedback" name="feedback" rows="3"></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
+              <button type="submit" class="btn btn-primary">Saqlash</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Evaluation Modal (already included within the for loop above) -->
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Function to fetch and populate students
+        function fetchStudents(groupId, studentSelectElement, selectedStudentId=null) {
+          if (groupId) {
+            fetch(`/baholash/get_students/${groupId}/`)
+              .then(response => response.json())
+              .then(data => {
+                if (data.students) {
+                  studentSelectElement.innerHTML = '<option selected disabled>Talabani tanlang</option>'; // Reset student options
+                  data.students.forEach(student => {
+                    const option = document.createElement('option');
+                    option.value = student.id;
+                    option.text = student.fullname;
+                    if (selectedStudentId && student.id == selectedStudentId) {
+                      option.selected = true;
+                    }
+                    studentSelectElement.appendChild(option);
+                  });
+                } else {
+                  studentSelectElement.innerHTML = '<option disabled>Talabalarni olishda xato yuz berdi.</option>';
+                }
+              })
+              .catch(error => {
+                console.error('Error fetching students:', error);
+                studentSelectElement.innerHTML = '<option disabled>Talabalarni olishda xato yuz berdi.</option>';
+              });
+          } else {
+            studentSelectElement.innerHTML = '<option selected disabled>Talabani tanlang</option>';
+          }
+        }
+    
+        // Handle Add Evaluation Modal
+        const addGroupSelect = document.getElementById('evaluation-group');
+        const addStudentSelect = document.getElementById('evaluation-student');
+    
+        addGroupSelect.addEventListener('change', function() {
+          const groupId = this.value;
+          fetchStudents(groupId, addStudentSelect);
+        });
+    
+        // Handle Edit Evaluation Modals
+        const editButtons = document.querySelectorAll('.edit-evaluation-btn');
+    
+        editButtons.forEach(button => {
+          button.addEventListener('click', function() {
+            const modalId = this.getAttribute('data-bs-target');
+            const modal = document.querySelector(modalId);
+    
+            const groupId = this.getAttribute('data-group-id');
+            const studentId = this.getAttribute('data-student-id');
+    
+            const editGroupSelect = modal.querySelector('.edit-evaluation-group');
+            const editStudentSelect = modal.querySelector('.edit-evaluation-student');
+    
+            // Set the group select to the current group
+            editGroupSelect.value = groupId;
+    
+            // Fetch and populate students
+            fetchStudents(groupId, editStudentSelect, studentId);
+    
+            // Optionally, handle group changes within the edit modal
+            editGroupSelect.addEventListener('change', function() {
+              const newGroupId = this.value;
+              fetchStudents(newGroupId, editStudentSelect);
+            }, { once: true }); // Use { once: true } to prevent multiple event listeners
+          });
+        });
+      });
+    </script>
+
+{% endblock %}

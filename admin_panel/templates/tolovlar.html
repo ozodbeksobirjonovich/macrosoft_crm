@@ -1,0 +1,240 @@
+<!-- templates/tolovlar.html -->
+
+{% extends "layout.html" %}
+{% load static %}  <!-- Ensure static files can be loaded -->
+
+{% block title %}To'lovlar{% endblock %}
+
+{% block body %}
+
+    <!-- Main Content -->
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>To'lovlar</h2>
+            <!-- Button trigger modal -->
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPaymentModal">
+              To'lov Qo'shish
+            </button>
+        </div>
+        <table class="table table-striped table-responsive">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Talaba</th>
+                    <th>Guruh</th>
+                    <th>Summasi</th>
+                    <th>Sana</th>
+                    <th>Usuli</th>
+                    <th>Amallar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ payment.student.fullname }}</td>
+                    <td>{{ payment.group.name }}</td>
+                    <td>{{ payment.amount }} so'm</td>
+                    <td>{{ payment.date }}</td>
+                    <td>{{ payment.method }}</td>
+                    <td>
+                        <!-- Button trigger edit modal -->
+                        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editPaymentModal{{ payment.id }}"
+                            data-group-id="{{ payment.group.id }}"
+                            data-student-id="{{ payment.student.id }}"
+                            data-amount="{{ payment.amount }}"
+                            data-method="{{ payment.method }}">
+                            Tahrirlash
+                        </button>
+                        <!-- Delete button -->
+                        <form action="{% url 'admin_panel:delete_payment' payment.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Haqiqatan o\'chirmoqchimisiz?')">O'chirish</button>
+                        </form>
+                    </td>
+                </tr>
+
+                <!-- Edit Payment Modal -->
+                <div class="modal fade" id="editPaymentModal{{ payment.id }}" tabindex="-1" aria-labelledby="editPaymentModalLabel{{ payment.id }}" aria-hidden="true">
+                  <div class="modal-dialog">
+                    <form action="{% url 'admin_panel:edit_payment' payment.id %}" method="post">
+                      {% csrf_token %}
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title" id="editPaymentModalLabel{{ payment.id }}">To'lov Tahrirlash</h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                          <!-- Form fields pre-filled with existing data -->
+                          <div class="mb-3">
+                            <label for="edit-payment-group{{ payment.id }}" class="form-label">Guruh</label>
+                            <select class="form-select edit-payment-group" id="edit-payment-group{{ payment.id }}" name="group" required>
+                              <option selected disabled>Guruhni tanlang</option>
+                              {% for group in groups %}
+                                <option value="{{ group.id }}" {% if group.id == payment.group.id %}selected{% endif %}>{{ group.name }}</option>
+                              {% endfor %}
+                            </select>
+                          </div>
+                          <div class="mb-3">
+                            <label for="edit-payment-student{{ payment.id }}" class="form-label">Talaba</label>
+                            <select class="form-select edit-payment-student" id="edit-payment-student{{ payment.id }}" name="student" required>
+                              <option selected disabled>Talabani tanlang</option>
+                              <!-- Students will be populated via JavaScript -->
+                            </select>
+                          </div>
+                          <div class="mb-3">
+                            <label for="edit-payment-amount{{ payment.id }}" class="form-label">Summasi (so'm)</label>
+                            <input type="number" class="form-control" id="edit-payment-amount{{ payment.id }}" name="amount" value="{{ payment.amount }}" required>
+                          </div>
+                          <div class="mb-3">
+                            <label for="edit-payment-method{{ payment.id }}" class="form-label">To'lov Usuli</label>
+                            <select class="form-select" id="edit-payment-method{{ payment.id }}" name="method" required>
+                              <option value="Naqt" {% if payment.method == "Naqt" %}selected{% endif %}>Naqt</option>
+                              <option value="Karta orqali" {% if payment.method == "Karta orqali" %}selected{% endif %}>Karta orqali</option>
+                              <option value="Payme orqali" {% if payment.method == "Payme orqali" %}selected{% endif %}>Payme orqali</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
+                          <button type="submit" class="btn btn-primary">Saqlash</button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">Hech qanday to'lov topilmadi.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Payment Modal -->
+    <div class="modal fade" id="addPaymentModal" tabindex="-1" aria-labelledby="addPaymentModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form action="{% url 'admin_panel:add_payment' %}" method="post">
+          {% csrf_token %}
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addPaymentModalLabel">To'lov Qo'shish</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <!-- Form fields -->
+              <div class="mb-3">
+                <label for="payment-group" class="form-label">Guruh</label>
+                <select class="form-select" id="payment-group" name="group" required>
+                  <option selected disabled>Guruhni tanlang</option>
+                  {% for group in groups %}
+                    <option value="{{ group.id }}">{{ group.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="payment-student" class="form-label">Talaba</label>
+                <select class="form-select" id="payment-student" name="student" required>
+                  <option selected disabled>Talabani tanlang</option>
+                  <!-- Dinamik ravishda talabalar qo'shiladi -->
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="payment-amount" class="form-label">Summasi (so'm)</label>
+                <input type="number" class="form-control" id="payment-amount" name="amount" required>
+              </div>
+              <!-- Date is auto-filled; no input needed -->
+              <div class="mb-3">
+                <label for="payment-method" class="form-label">To'lov Usuli</label>
+                <select class="form-select" id="payment-method" name="method" required>
+                  <option selected disabled>To'lov usulini tanlang</option>
+                  <option value="Naqt">Naqt</option>
+                  <option value="Karta orqali">Karta orqali</option>
+                  <option value="Payme orqali">Payme orqali</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
+              <button type="submit" class="btn btn-primary">Saqlash</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Payment Modals are already included within the for loop above -->
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Function to fetch and populate students
+        function fetchStudents(groupId, studentSelectElement, selectedStudentId = null) {
+          if (groupId) {
+            fetch(`/tolovlar/get_students/${groupId}/`)
+              .then(response => response.json())
+              .then(data => {
+                if (data.students) {
+                  studentSelectElement.innerHTML = '<option selected disabled>Talabani tanlang</option>'; // Reset student options
+                  data.students.forEach(student => {
+                    const option = document.createElement('option');
+                    option.value = student.id;
+                    option.text = student.fullname;
+                    if (selectedStudentId && student.id == selectedStudentId) {
+                      option.selected = true;
+                    }
+                    studentSelectElement.appendChild(option);
+                  });
+                } else {
+                  studentSelectElement.innerHTML = '<option disabled>Talabalarni olishda xato yuz berdi.</option>';
+                }
+              })
+              .catch(error => {
+                console.error('Error fetching students:', error);
+                studentSelectElement.innerHTML = '<option disabled>Talabalarni olishda xato yuz berdi.</option>';
+              });
+          } else {
+            studentSelectElement.innerHTML = '<option selected disabled>Talabani tanlang</option>';
+          }
+        }
+
+        // Handle Add Payment Modal
+        const addGroupSelect = document.getElementById('payment-group');
+        const addStudentSelect = document.getElementById('payment-student');
+
+        addGroupSelect.addEventListener('change', function() {
+          const groupId = this.value;
+          fetchStudents(groupId, addStudentSelect);
+        });
+
+        // Handle Edit Payment Modals
+        const editButtons = document.querySelectorAll('.btn-warning[data-bs-target^="#editPaymentModal"]');
+
+        editButtons.forEach(button => {
+          button.addEventListener('click', function() {
+            const modalId = this.getAttribute('data-bs-target');
+            const modal = document.querySelector(modalId);
+
+            const groupId = this.getAttribute('data-group-id');
+            const studentId = this.getAttribute('data-student-id');
+
+            const editGroupSelect = modal.querySelector('.edit-payment-group');
+            const editStudentSelect = modal.querySelector('.edit-payment-student');
+
+            // Set the group select to the current group
+            editGroupSelect.value = groupId;
+
+            // Fetch and populate students
+            fetchStudents(groupId, editStudentSelect, studentId);
+
+            // Optionally, handle group changes within the edit modal
+            editGroupSelect.addEventListener('change', function() {
+              const newGroupId = this.value;
+              fetchStudents(newGroupId, editStudentSelect);
+            }, { once: true }); // Use { once: true } to prevent multiple event listeners
+          });
+        });
+      });
+    </script>
+
+{% endblock %}
