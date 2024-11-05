@@ -120,7 +120,7 @@
     <!-- Add Student Modal -->
     <div class="modal fade" id="addStudentModal" tabindex="-1" aria-labelledby="addStudentModalLabel" aria-hidden="true">
       <div class="modal-dialog">
-        <form action="{% url 'admin_panel:add_student' %}" method="post" enctype="multipart/form-data">
+        <form id="addStudentForm" action="{% url 'admin_panel:add_student' %}" method="post" enctype="multipart/form-data">
           {% csrf_token %}
           <div class="modal-content">
             <div class="modal-header">
@@ -136,6 +136,10 @@
               <div class="mb-3">
                 <label for="image" class="form-label">Foto</label>
                 <input type="file" class="form-control" id="image" name="image">
+                <!-- Image Preview -->
+                <div id="imagePreviewContainer" class="mt-2">
+                    <img id="imagePreview" src="#" alt="Rasm ko'rinishi" class="img-thumbnail" style="display: none; max-width: 100px;">
+                </div>
               </div>
               <div class="mb-3">
                 <label for="groups" class="form-label">Guruhlar</label>
@@ -157,6 +161,7 @@
                 <label for="phone3" class="form-label">Telefon 3</label>
                 <input type="text" class="form-control" id="phone3" name="phone3">
               </div>
+              <p class="mt-3">Rasmni qo'shish uchun <strong>Ctrl + Shift + S</strong> tugmalarini bosing va rasmni kesib oling.</p>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
@@ -167,4 +172,113 @@
       </div>
     </div>
 
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Your Custom JS -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const addStudentModal = document.getElementById('addStudentModal');
+        const addStudentForm = document.getElementById('addStudentForm');
+        const imageInput = document.getElementById('image');
+        const imagePreview = document.getElementById('imagePreview');
+
+        // Modal instance
+        const bootstrapAddStudentModal = new bootstrap.Modal(addStudentModal);
+
+        // Funksiya: Rasmni ko'rsatish
+        function displayImagePreview(file) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            imagePreview.src = e.target.result;
+            imagePreview.style.display = 'block';
+          }
+          reader.readAsDataURL(file);
+        }
+
+        // Rasm input o'zgarganda previewni yangilash
+        imageInput.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            displayImagePreview(file);
+          } else {
+            imagePreview.src = '#';
+            imagePreview.style.display = 'none';
+          }
+        });
+
+        // Modal ochilganda klaviatura hodisalarini eshitish
+        addStudentModal.addEventListener('shown.bs.modal', () => {
+          document.addEventListener('keydown', handleKeyDown);
+        });
+
+        // Modal yopilganda hodisalarni olib tashlash
+        addStudentModal.addEventListener('hidden.bs.modal', () => {
+          document.removeEventListener('keydown', handleKeyDown);
+        });
+
+        async function handleKeyDown(e) {
+          // Ctrl + Shift + S kombinatsiyasini tekshirish
+          if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 's') {
+            e.preventDefault();
+
+            // Clipboard API qo‘llab-quvvatlanishini tekshirish
+            if (!navigator.clipboard || !navigator.clipboard.read) {
+              alert('Brauzeringiz Clipboard API’ni qo‘llab-quvvatlamaydi.');
+              return;
+            }
+
+            try {
+              // Clipboard’dan rasm o‘qish
+              const clipboardItems = await navigator.clipboard.read();
+              for (const item of clipboardItems) {
+                if (item.types.includes('image/png') || item.types.includes('image/jpeg') || item.types.includes('image/jpg') || item.types.includes('image/gif')) {
+                  const blob = await item.getType(item.types.find(type => type.startsWith('image/')));
+                  const file = new File([blob], 'screenshot.' + blob.type.split('/')[1], { type: blob.type });
+
+                  // DataTransfer orqali FileList yaratish
+                  const dataTransfer = new DataTransfer();
+                  dataTransfer.items.add(file);
+
+                  // Fayl inputga faylni qo‘shish
+                  imageInput.files = dataTransfer.files;
+
+                  // Rasmni previewda ko‘rsatish
+                  displayImagePreview(file);
+
+                  alert('Rasm muvaffaqiyatli qo‘shildi!');
+                  break; // Birinchi rasmni qo‘shish
+                }
+              }
+            } catch (err) {
+              console.error('Clipboard’dan rasm o‘qishda xato:', err);
+              alert('Rasmni clipboard’dan o‘qishda xato yuz berdi.');
+            }
+          }
+        }
+
+        // Optional: Paste hodisasini qo‘shish (foydalanuvchi qo'lda paste qilsa)
+        imageInput.addEventListener('paste', async (e) => {
+          const items = e.clipboardData.items;
+          for (const item of items) {
+            if (item.type.startsWith('image/')) {
+              const blob = item.getAsFile();
+              const file = new File([blob], 'pasted-image.' + blob.type.split('/')[1], { type: blob.type });
+
+              const dataTransfer = new DataTransfer();
+              dataTransfer.items.add(file);
+              imageInput.files = dataTransfer.files;
+
+              // Rasmni previewda ko‘rsatish
+              displayImagePreview(file);
+
+              alert('Rasm muvaffaqiyatli qo‘shildi!');
+              break;
+            }
+          }
+        });
+
+      });
+    </script>
+</body>
+</html>
 {% endblock %}
