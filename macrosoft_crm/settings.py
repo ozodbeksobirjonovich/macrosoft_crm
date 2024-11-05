@@ -12,6 +12,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://dashboard.macrosoft.uz',
+]
+
 LOGIN_URL = '/admin/login/'
 
 SWAGGER_SETTINGS = {
