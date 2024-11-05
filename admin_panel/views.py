@@ -173,6 +173,7 @@ def teachers(request):
     teachers = Teacher.objects.all()
     return render(request, "ustozlar.html", {'teachers': teachers})
 
+@superuser_required
 @login_required
 @require_POST
 def add_teacher(request):
@@ -184,6 +185,7 @@ def add_teacher(request):
         messages.error(request, "Ma'lumotlarni to'g'ri kiriting.")
     return redirect('admin_panel:teachers')
 
+@superuser_required
 @login_required
 @require_POST
 def edit_teacher(request, teacher_id):
@@ -196,6 +198,7 @@ def edit_teacher(request, teacher_id):
         messages.error(request, "Ma'lumotlarni to'g'ri kiriting.")
     return redirect('admin_panel:teachers')
 
+@superuser_required
 @login_required
 @require_POST
 def delete_teacher(request, teacher_id):
