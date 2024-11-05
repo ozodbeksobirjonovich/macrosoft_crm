@@ -42,6 +42,7 @@
   /* Hide the default file input appearance */
   .custom-file-input {
     cursor: pointer;
+    width: 100%;
   }
 
   /* Position the preview images */
@@ -331,11 +332,18 @@
         reader.onloadend = function() {
           // Set the cropped image data to the hidden input
           targetHiddenInput.value = reader.result;
+
           // Set the preview image source
           if (currentPreview) {
             currentPreview.src = reader.result;
             currentPreview.style.display = 'block';
           }
+
+          // Optionally, hide the original file input
+          if (currentInput) {
+            currentInput.style.display = 'none';
+          }
+
           // Hide the crop modal
           const cropModalElement = document.getElementById('cropImageModal');
           const cropModal = bootstrap.Modal.getInstance(cropModalElement);
@@ -363,11 +371,6 @@
       const previewId = `previewEdit${studentId}`;
       handleImageSelect(event, hiddenInputId, previewId);
     });
-  });
-
-  // Optional: Prevent multiple Crop Image modals from opening
-  document.getElementById('cropImageModal').addEventListener('show.bs.modal', function () {
-    // Additional logic can be added here if needed
   });
 </script>
 
