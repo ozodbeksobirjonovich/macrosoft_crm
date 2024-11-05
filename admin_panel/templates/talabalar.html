@@ -227,7 +227,7 @@
           </div>
           <div class="mb-3">
             <label for="image" class="form-label">Foto</label>
-            <input type="file" class="form-control image-input-add" id="imageInputAdd" accept="image/*" required>
+            <input type="file" class="form-control image-input-add" id="imageInputAdd" accept="image/*" style="display: none;">
             <input type="hidden" name="cropped_image" id="croppedImageAdd">
             <!-- Preview of Cropped Image -->
             <div class="image-preview">
@@ -265,7 +265,7 @@
   </div>
 </div>
 
-<!-- JavaScript for Image Cropping -->
+<!-- JavaScript for Image Cropping and Form Submission -->
 <script>
   let cropper;
   let currentInput = null;
@@ -298,7 +298,7 @@
   document.getElementById('cropImageModal').addEventListener('shown.bs.modal', function () {
     const image = document.getElementById('imageToCrop');
     cropper = new Cropper(image, {
-      aspectRatio: 1, // Change as needed (e.g., 16/9 for widescreen)
+      aspectRatio: 1, // Change as needed
       viewMode: 1,
       autoCropArea: 1,
       movable: true,
@@ -370,6 +370,99 @@
       const hiddenInputId = `croppedImageEdit${studentId}`;
       const previewId = `previewEdit${studentId}`;
       handleImageSelect(event, hiddenInputId, previewId);
+    });
+  });
+
+  // Handle form submission to include cropped image
+  document.getElementById('addStudentForm').addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevent default form submission
+
+    const form = event.target;
+    const formData = new FormData(form);
+
+    // Get the cropped image data from the hidden input
+    const croppedImageData = document.getElementById('croppedImageAdd').value;
+
+    if (croppedImageData) {
+      // Convert Base64 string to Blob
+      fetch(croppedImageData)
+        .then(res => res.blob())
+        .then(blob => {
+          // Append the Blob to the FormData as a File
+          formData.append('image', blob, 'cropped_image.jpg');
+
+          // Send the form data via fetch
+          fetch(form.action, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+            },
+            body: formData
+          })
+          .then(response => {
+            if (response.ok) {
+              // Optionally, redirect or show a success message
+              window.location.href = "{% url 'admin_panel:students' %}";
+            } else {
+              // Handle errors
+              alert('Forma yuborishda xatolik yuz berdi.');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Forma yuborishda xatolik yuz berdi.');
+          });
+        });
+    } else {
+      alert('Iltimos, rasmni tanlang va kesing.');
+    }
+  });
+
+  // Similar form submission handling for edit forms
+  document.querySelectorAll('form[id^="editStudentForm"]').forEach(function(form) {
+    form.addEventListener('submit', function(event) {
+      event.preventDefault(); // Prevent default form submission
+
+      const form = event.target;
+      const formData = new FormData(form);
+
+      // Get the cropped image data from the hidden input
+      const croppedImageInput = form.querySelector('input[name="cropped_image"]');
+      const croppedImageData = croppedImageInput.value;
+
+      if (croppedImageData) {
+        // Convert Base64 string to Blob
+        fetch(croppedImageData)
+          .then(res => res.blob())
+          .then(blob => {
+            // Append the Blob to the FormData as a File
+            formData.append('image', blob, 'cropped_image.jpg');
+
+            // Send the form data via fetch
+            fetch(form.action, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+              },
+              body: formData
+            })
+            .then(response => {
+              if (response.ok) {
+                // Optionally, redirect or show a success message
+                window.location.href = "{% url 'admin_panel:students' %}";
+              } else {
+                // Handle errors
+                alert('Forma yuborishda xatolik yuz berdi.');
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              alert('Forma yuborishda xatolik yuz berdi.');
+            });
+          });
+      } else {
+        alert('Iltimos, rasmni tanlang va kesing.');
+      }
     });
   });
 </script>
