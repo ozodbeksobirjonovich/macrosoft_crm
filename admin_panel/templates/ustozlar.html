@@ -13,6 +13,86 @@
   {% endfor %}
 {% endif %}
 
+<!-- Include Cropper.js CSS and JS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<!-- Custom CSS for Styling -->
+<style>
+  /* Ensure Crop Image Modal appears above other modals */
+  .crop-image-modal {
+    z-index: 1060; /* Higher than default Bootstrap modal (1050) */
+  }
+
+  .crop-image-modal + .modal-backdrop {
+    z-index: 1055; /* Between Crop Image modal and other backdrops */
+  }
+
+  /* Optional: Adjust backdrop opacity or color if needed */
+  .crop-image-modal + .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  /* Styling for Drag-and-Drop Area */
+  .drag-drop-area {
+    border: 2px dashed #6c757d;
+    border-radius: 5px;
+    padding: 20px;
+    text-align: center;
+    color: #6c757d;
+    cursor: pointer;
+    transition: background-color 0.3s, border-color 0.3s;
+  }
+
+  .drag-drop-area.dragover {
+    background-color: #e9ecef;
+    border-color: #0d6efd;
+    color: #0d6efd;
+  }
+
+  /* Image Preview Styling */
+  .image-preview {
+    margin-top: 10px;
+    text-align: center;
+  }
+
+  .image-preview img {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #ddd;
+    padding: 5px;
+    border-radius: 4px;
+  }
+
+  /* Informative Text */
+  .info-text {
+    font-size: 0.9rem;
+    color: #6c757d;
+  }
+</style>
+
+<!-- Image Crop Modal -->
+<div class="modal fade crop-image-modal" id="cropImageModal" tabindex="-1" aria-labelledby="cropImageModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="cropImageModalLabel">Rasmni Kesish</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="cropModalCloseButton"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center">
+          <img id="imageToCrop" src="" alt="Rasmni tanlang" style="max-width: 100%; display: none;">
+        </div>
+        <p class="info-text mt-2">Rasmni kesib bo'lgach, "Kesish va Yuklash" tugmasini bosing.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
+        <button type="button" class="btn btn-primary" id="cropButton">Kesish va Yuklash</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Main Content -->
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -55,9 +135,9 @@
             </tr>
 
             <!-- Edit Teacher Modal -->
-            <div class="modal fade" id="editTeacherModal{{ teacher.id }}" tabindex="-1" aria-labelledby="editTeacherModalLabel{{ teacher.id }}" aria-hidden="true">
+            <div class="modal fade" id="editTeacherModal{{ teacher.id }}" tabindex="-1" aria-labelledby="editTeacherModalLabel{{ teacher.id }}" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
               <div class="modal-dialog">
-                <form action="{% url 'admin_panel:edit_teacher' teacher.id %}" method="post" enctype="multipart/form-data">
+                <form id="editTeacherForm{{ teacher.id }}" action="{% url 'admin_panel:edit_teacher' teacher.id %}" method="post" enctype="multipart/form-data">
                   {% csrf_token %}
                   <div class="modal-content">
                     <div class="modal-header">
@@ -72,11 +152,20 @@
                       </div>
                       <div class="mb-3">
                         <label for="edit-image{{ teacher.id }}" class="form-label">Foto</label>
-                        <input type="file" class="form-control" id="edit-image{{ teacher.id }}" name="image">
+                        <div class="drag-drop-area" id="dragDropEdit{{ teacher.id }}">
+                          <p>Rasmni shu yerga torting yoki ustiga bosing</p>
+                          <input type="file" class="form-control image-input-edit" id="imageInputEdit{{ teacher.id }}" data-teacher-id="{{ teacher.id }}" accept="image/*" style="display: none;">
+                        </div>
+                        <input type="hidden" name="cropped_image" id="croppedImageEdit{{ teacher.id }}">
                         {% if teacher.image %}
                           <small>Joriy foto:</small><br>
                           <img src="{{ teacher.image.url }}" alt="Foto" class="img-thumbnail mt-2" width="100">
                         {% endif %}
+                        <!-- Preview of Cropped Image -->
+                        <div class="image-preview">
+                          <img id="previewEdit{{ teacher.id }}" src="{{ teacher.image.url }}" alt="Cropped Image Preview" class="img-thumbnail" width="100" {% if not teacher.image %}style="display:none;"{% endif %}>
+                        </div>
+                        <p class="info-text">Kesilgan rasm bu yerda ko'rsatiladi.</p>
                       </div>
                     </div>
                     <div class="modal-footer">
@@ -97,9 +186,9 @@
 </div>
 
 <!-- Add Teacher Modal -->
-<div class="modal fade" id="addTeacherModal" tabindex="-1" aria-labelledby="addTeacherModalLabel" aria-hidden="true">
+<div class="modal fade" id="addTeacherModal" tabindex="-1" aria-labelledby="addTeacherModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog">
-    <form action="{% url 'admin_panel:add_teacher' %}" method="post" enctype="multipart/form-data">
+    <form id="addTeacherForm" action="{% url 'admin_panel:add_teacher' %}" method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <div class="modal-content">
         <div class="modal-header">
@@ -114,7 +203,16 @@
           </div>
           <div class="mb-3">
             <label for="image" class="form-label">Foto</label>
-            <input type="file" class="form-control" id="image" name="image">
+            <div class="drag-drop-area" id="dragDropAdd">
+              <p>Rasmni shu yerga torting yoki ustiga bosing</p>
+              <input type="file" class="form-control image-input-add" id="imageInputAdd" accept="image/*" style="display: none;">
+            </div>
+            <input type="hidden" name="cropped_image" id="croppedImageAdd">
+            <!-- Preview of Cropped Image -->
+            <div class="image-preview">
+              <img id="previewAdd" src="" alt="Cropped Image Preview" class="img-thumbnail" width="100" style="display:none;">
+            </div>
+            <p class="info-text">Kesilgan rasm bu yerda ko'rsatiladi.</p>
           </div>
         </div>
         <div class="modal-footer">
@@ -125,5 +223,248 @@
     </form>
   </div>
 </div>
+
+<!-- JavaScript for Image Cropping and Form Submission -->
+<script>
+  let cropper;
+  let currentInput = null;
+  let targetHiddenInput = null;
+  let currentPreview = null;
+
+  // Function to handle image selection and open crop modal
+  function handleImageSelect(file, hiddenInputId, previewId) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const image = document.getElementById('imageToCrop');
+      image.src = e.target.result;
+      image.style.display = 'block';
+      targetHiddenInput = document.getElementById(hiddenInputId);
+      currentPreview = document.getElementById(previewId);
+      // Show the crop modal
+      const cropModal = new bootstrap.Modal(document.getElementById('cropImageModal'), {
+        backdrop: 'static',
+        keyboard: false
+      });
+      cropModal.show();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Initialize Cropper.js when the crop modal is shown
+  document.getElementById('cropImageModal').addEventListener('shown.bs.modal', function () {
+    const image = document.getElementById('imageToCrop');
+    cropper = new Cropper(image, {
+      aspectRatio: 1, // Change as needed
+      viewMode: 1,
+      autoCropArea: 1,
+      movable: true,
+      zoomable: true,
+      rotatable: false,
+      scalable: false
+    });
+  });
+
+  // Destroy Cropper.js instance when the crop modal is hidden
+  document.getElementById('cropImageModal').addEventListener('hidden.bs.modal', function () {
+    if (cropper) {
+      cropper.destroy();
+      cropper = null;
+    }
+    // Clear the image source
+    const image = document.getElementById('imageToCrop');
+    image.src = '';
+    image.style.display = 'none';
+    // Reset the file input
+    if (currentInput) {
+      currentInput.value = '';
+      currentInput.parentElement.classList.remove('dragover');
+    }
+  });
+
+  // Handle the crop button click
+  document.getElementById('cropButton').addEventListener('click', function () {
+    if (cropper) {
+      cropper.getCroppedCanvas().toBlob(function(blob) {
+        // Create a new File from the Blob
+        const croppedFile = new File([blob], 'cropped_image.jpg', { type: 'image/jpeg' });
+
+        // Store the Blob in a global variable for form submission
+        currentInput.croppedFile = croppedFile;
+
+        // Create a new File object URL for preview
+        const previewURL = URL.createObjectURL(croppedFile);
+        if (currentPreview) {
+          currentPreview.src = previewURL;
+          currentPreview.style.display = 'block';
+        }
+
+        // Hide the crop modal
+        const cropModalElement = document.getElementById('cropImageModal');
+        const cropModal = bootstrap.Modal.getInstance(cropModalElement);
+        cropModal.hide();
+      }, 'image/jpeg');
+    }
+  });
+
+  // Event listener for Add Teacher drag-and-drop area
+  const dragDropAdd = document.getElementById('dragDropAdd');
+  dragDropAdd.addEventListener('click', () => {
+    document.getElementById('imageInputAdd').click();
+  });
+
+  dragDropAdd.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dragDropAdd.classList.add('dragover');
+  });
+
+  dragDropAdd.addEventListener('dragleave', () => {
+    dragDropAdd.classList.remove('dragover');
+  });
+
+  dragDropAdd.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dragDropAdd.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      currentInput = document.getElementById('imageInputAdd');
+      const hiddenInputId = 'croppedImageAdd';
+      const previewId = 'previewAdd';
+      handleImageSelect(file, hiddenInputId, previewId);
+    }
+  });
+
+  // Event listener for Add Teacher file input
+  document.getElementById('imageInputAdd').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file) {
+      currentInput = event.target;
+      const hiddenInputId = 'croppedImageAdd';
+      const previewId = 'previewAdd';
+      handleImageSelect(file, hiddenInputId, previewId);
+    }
+  });
+
+  // Event listeners for Edit Teacher drag-and-drop areas
+  document.querySelectorAll('.drag-drop-area[id^="dragDropEdit"]').forEach(function(area) {
+    area.addEventListener('click', () => {
+      const teacherId = area.id.replace('dragDropEdit', '');
+      document.getElementById(`imageInputEdit${teacherId}`).click();
+    });
+
+    area.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      area.classList.add('dragover');
+    });
+
+    area.addEventListener('dragleave', () => {
+      area.classList.remove('dragover');
+    });
+
+    area.addEventListener('drop', (e) => {
+      e.preventDefault();
+      area.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        const file = files[0];
+        const teacherId = area.id.replace('dragDropEdit', '');
+        const input = document.getElementById(`imageInputEdit${teacherId}`);
+        const hiddenInputId = `croppedImageEdit${teacherId}`;
+        const previewId = `previewEdit${teacherId}`;
+        currentInput = input;
+        handleImageSelect(file, hiddenInputId, previewId);
+      }
+    });
+  });
+
+  // Event listeners for Edit Teacher file inputs
+  document.querySelectorAll('.image-input-edit').forEach(function(input) {
+    input.addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const teacherId = event.target.dataset.teacherId;
+        const hiddenInputId = `croppedImageEdit${teacherId}`;
+        const previewId = `previewEdit${teacherId}`;
+        currentInput = event.target;
+        handleImageSelect(file, hiddenInputId, previewId);
+      }
+    });
+  });
+
+  // Handle form submission for Add Teacher
+  document.getElementById('addTeacherForm').addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevent default form submission
+
+    const form = event.target;
+    const formData = new FormData(form);
+
+    // Append the cropped image if available
+    const croppedFile = document.getElementById('imageInputAdd').croppedFile;
+    if (croppedFile) {
+      formData.append('image', croppedFile, 'cropped_image.jpg');
+    }
+
+    // Send the form data via fetch
+    fetch(form.action, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+      },
+      body: formData
+    })
+    .then(response => {
+      if (response.ok) {
+        // Optionally, redirect or show a success message
+        window.location.href = "{% url 'admin_panel:teachers' %}";
+      } else {
+        // Handle errors
+        alert('Forma yuborishda xatolik yuz berdi.');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Forma yuborishda xatolik yuz berdi.');
+    });
+  });
+
+  // Handle form submission for Edit Teacher forms
+  document.querySelectorAll('form[id^="editTeacherForm"]').forEach(function(form) {
+    form.addEventListener('submit', function(event) {
+      event.preventDefault(); // Prevent default form submission
+
+      const form = event.target;
+      const formData = new FormData(form);
+
+      // Append the cropped image if available
+      const hiddenInput = form.querySelector('input[name="cropped_image"]');
+      const croppedFile = hiddenInput ? hiddenInput.croppedFile : null;
+      if (croppedFile) {
+        formData.append('image', croppedFile, 'cropped_image.jpg');
+      }
+
+      // Send the form data via fetch
+      fetch(form.action, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+        },
+        body: formData
+      })
+      .then(response => {
+        if (response.ok) {
+          // Optionally, redirect or show a success message
+          window.location.href = "{% url 'admin_panel:teachers' %}";
+        } else {
+          // Handle errors
+          alert('Forma yuborishda xatolik yuz berdi.');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Forma yuborishda xatolik yuz berdi.');
+      });
+    });
+  });
+</script>
 
 {% endblock %}
