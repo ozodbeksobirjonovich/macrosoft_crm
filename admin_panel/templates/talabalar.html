@@ -8,8 +8,25 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
+<!-- Custom CSS to Adjust Z-Index for Crop Image Modal -->
+<style>
+  /* Ensure Crop Image Modal appears above other modals */
+  .crop-image-modal {
+    z-index: 1060; /* Higher than default Bootstrap modal */
+  }
+
+  .crop-image-modal + .modal-backdrop {
+    z-index: 1055; /* Between Crop Image modal and other backdrops */
+  }
+
+  /* Optional: Reduce opacity of Crop Image backdrop if needed */
+  .crop-image-modal + .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+</style>
+
 <!-- Image Crop Modal -->
-<div class="modal fade" id="cropImageModal" tabindex="-1" aria-labelledby="cropImageModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+<div class="modal fade crop-image-modal" id="cropImageModal" tabindex="-1" aria-labelledby="cropImageModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
@@ -85,7 +102,7 @@
             </tr>
 
             <!-- Edit Student Modal -->
-            <div class="modal fade" id="editStudentModal{{ student.id }}" tabindex="-1" aria-labelledby="editStudentModalLabel{{ student.id }}" aria-hidden="true">
+            <div class="modal fade" id="editStudentModal{{ student.id }}" tabindex="-1" aria-labelledby="editStudentModalLabel{{ student.id }}" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
               <div class="modal-dialog">
                 <form id="editStudentForm{{ student.id }}" action="{% url 'admin_panel:edit_student' student.id %}" method="post" enctype="multipart/form-data">
                   {% csrf_token %}
@@ -239,7 +256,7 @@
   document.getElementById('cropImageModal').addEventListener('shown.bs.modal', function () {
     const image = document.getElementById('imageToCrop');
     cropper = new Cropper(image, {
-      aspectRatio: 1, // Change as needed
+      aspectRatio: 1, // Change as needed (e.g., 16/9 for widescreen)
       viewMode: 1,
       autoCropArea: 1,
       movable: true,
@@ -307,9 +324,11 @@
     });
   });
 
-  // Prevent closing the Add/Edit modals when clicking outside
-  // This is already handled by data-bs-backdrop="static" and data-bs-keyboard="false"
-  // in the modal definitions above
+  // Optional: Prevent multiple Crop Image modals from opening
+  // This ensures only one Crop Image modal is open at a time
+  document.getElementById('cropImageModal').addEventListener('show.bs.modal', function () {
+    // Optionally, you can add checks here
+  });
 </script>
 
 {% endblock %}
