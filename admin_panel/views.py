@@ -88,6 +88,7 @@ def groups(request):
     
     return render(request, "guruhlar.html", context)
 
+@superuser_required
 @login_required
 @require_POST
 def add_group(request):
@@ -101,6 +102,7 @@ def add_group(request):
         messages.error(request, "Ma'lumotlarni to'g'ri kiriting.")
     return redirect('admin_panel:groups')
 
+@superuser_required
 @login_required
 @require_POST
 def edit_group(request, group_id):
@@ -113,6 +115,7 @@ def edit_group(request, group_id):
         messages.error(request, "Ma'lumotlarni to'g'ri kiriting.")
     return redirect('admin_panel:groups')
 
+@superuser_required
 @login_required
 @require_POST
 def delete_group(request, group_id):
