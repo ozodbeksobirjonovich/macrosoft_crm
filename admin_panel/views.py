@@ -643,7 +643,7 @@ class GetAllStudentsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_serializer_context(self):
         return {'request': self.request}
     
-class BlogsViewSet(viewsets.ModelViewSet):
+class BlogsViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Blogs.objects.all()
     serializer_class = BlogsSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
