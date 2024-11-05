@@ -9,24 +9,22 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
 <!-- Image Crop Modal -->
-<div class="modal fade" id="cropImageModal" tabindex="-1" aria-labelledby="cropImageModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
+<div class="modal fade" id="cropImageModal" tabindex="-1" aria-labelledby="cropImageModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
-      <form id="cropForm">
-        <div class="modal-header">
-          <h5 class="modal-title" id="cropImageModalLabel">Rasmni Kesish</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      <div class="modal-header">
+        <h5 class="modal-title" id="cropImageModalLabel">Rasmni Kesish</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="cropModalCloseButton"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center">
+          <img id="imageToCrop" src="" alt="Rasmni tanlang" style="max-width: 100%; display: none;">
         </div>
-        <div class="modal-body">
-          <div>
-            <img id="imageToCrop" src="" alt="Rasmni tanlang" style="max-width: 100%;">
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
-          <button type="button" class="btn btn-primary" id="cropButton">Kesish va Yuklash</button>
-        </div>
-      </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor Qilish</button>
+        <button type="button" class="btn btn-primary" id="cropButton">Kesish va Yuklash</button>
+      </div>
     </div>
   </div>
 </div>
@@ -104,11 +102,15 @@
                       </div>
                       <div class="mb-3">
                         <label for="edit-image{{ student.id }}" class="form-label">Foto</label>
-                        <input type="file" class="form-control" id="imageInputEdit{{ student.id }}" data-student-id="{{ student.id }}" accept="image/*">
+                        <input type="file" class="form-control image-input-edit" id="imageInputEdit{{ student.id }}" data-student-id="{{ student.id }}" accept="image/*">
                         <input type="hidden" name="cropped_image" id="croppedImageEdit{{ student.id }}">
                         {% if student.image %}
                           <img src="{{ student.image.url }}" alt="Current Foto" class="img-thumbnail mt-2" width="100">
                         {% endif %}
+                        <!-- Preview of Cropped Image -->
+                        <div class="mt-2">
+                          <img id="previewEdit{{ student.id }}" src="{{ student.image.url }}" alt="Cropped Image Preview" class="img-thumbnail" width="100" {% if not student.image %}style="display:none;"{% endif %}>
+                        </div>
                       </div>
                       <div class="mb-3">
                         <label for="edit-groups{{ student.id }}" class="form-label">Guruhlar</label>
@@ -149,14 +151,14 @@
 </div>
 
 <!-- Add Student Modal -->
-<div class="modal fade" id="addStudentModal" tabindex="-1" aria-labelledby="addStudentModalLabel" aria-hidden="true">
+<div class="modal fade" id="addStudentModal" tabindex="-1" aria-labelledby="addStudentModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog">
     <form id="addStudentForm" action="{% url 'admin_panel:add_student' %}" method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="addStudentModalLabel">Talaba Qo'shish</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="addModalCloseButton"></button>
         </div>
         <div class="modal-body">
           <!-- Form fields -->
@@ -166,8 +168,12 @@
           </div>
           <div class="mb-3">
             <label for="image" class="form-label">Foto</label>
-            <input type="file" class="form-control" id="imageInputAdd" accept="image/*" required>
+            <input type="file" class="form-control image-input-add" id="imageInputAdd" accept="image/*" required>
             <input type="hidden" name="cropped_image" id="croppedImageAdd">
+            <!-- Preview of Cropped Image -->
+            <div class="mt-2">
+              <img id="previewAdd" src="" alt="Cropped Image Preview" class="img-thumbnail" width="100" style="display:none;">
+            </div>
           </div>
           <div class="mb-3">
             <label for="groups" class="form-label">Guruhlar</label>
@@ -202,49 +208,79 @@
 <!-- JavaScript for Image Cropping -->
 <script>
   let cropper;
-  let currentInput;
-  let targetHiddenInput;
+  let currentInput = null;
+  let targetHiddenInput = null;
+  let currentPreview = null;
+  let currentForm = null;
 
-  function handleImageSelect(event, hiddenInputId) {
+  // Function to handle image selection and open crop modal
+  function handleImageSelect(event, hiddenInputId, previewId) {
     const files = event.target.files;
     if (files && files.length > 0) {
       const reader = new FileReader();
       reader.onload = function(e) {
-        document.getElementById('imageToCrop').src = e.target.result;
+        const image = document.getElementById('imageToCrop');
+        image.src = e.target.result;
+        image.style.display = 'block';
         targetHiddenInput = document.getElementById(hiddenInputId);
-        const cropModal = new bootstrap.Modal(document.getElementById('cropImageModal'));
+        currentPreview = document.getElementById(previewId);
+        // Show the crop modal
+        const cropModal = new bootstrap.Modal(document.getElementById('cropImageModal'), {
+          backdrop: 'static',
+          keyboard: false
+        });
         cropModal.show();
       };
       reader.readAsDataURL(files[0]);
     }
   }
 
+  // Initialize Cropper.js when the crop modal is shown
   document.getElementById('cropImageModal').addEventListener('shown.bs.modal', function () {
     const image = document.getElementById('imageToCrop');
     cropper = new Cropper(image, {
-      aspectRatio: 1,
+      aspectRatio: 1, // Change as needed
       viewMode: 1,
+      autoCropArea: 1,
+      movable: true,
+      zoomable: true,
+      rotatable: false,
+      scalable: false
     });
   });
 
+  // Destroy Cropper.js instance when the crop modal is hidden
   document.getElementById('cropImageModal').addEventListener('hidden.bs.modal', function () {
     if (cropper) {
       cropper.destroy();
       cropper = null;
     }
-    document.getElementById('imageToCrop').src = '';
+    // Clear the image source
+    const image = document.getElementById('imageToCrop');
+    image.src = '';
+    image.style.display = 'none';
+    // Clear the file input
     if (currentInput) {
       currentInput.value = '';
     }
   });
 
+  // Handle the crop button click
   document.getElementById('cropButton').addEventListener('click', function () {
     if (cropper) {
       cropper.getCroppedCanvas().toBlob(function(blob) {
         const reader = new FileReader();
         reader.onloadend = function() {
+          // Set the cropped image data to the hidden input
           targetHiddenInput.value = reader.result;
-          const cropModal = bootstrap.Modal.getInstance(document.getElementById('cropImageModal'));
+          // Set the preview image source
+          if (currentPreview) {
+            currentPreview.src = reader.result;
+            currentPreview.style.display = 'block';
+          }
+          // Hide the crop modal
+          const cropModalElement = document.getElementById('cropImageModal');
+          const cropModal = bootstrap.Modal.getInstance(cropModalElement);
           cropModal.hide();
         };
         reader.readAsDataURL(blob);
@@ -252,22 +288,28 @@
     }
   });
 
-  // Handle Add Student Image Input
+  // Event listener for Add Student image input
   document.getElementById('imageInputAdd').addEventListener('change', function(event) {
     currentInput = event.target;
     const hiddenInputId = 'croppedImageAdd';
-    handleImageSelect(event, hiddenInputId);
+    const previewId = 'previewAdd';
+    handleImageSelect(event, hiddenInputId, previewId);
   });
 
-  // Handle Edit Student Image Inputs
-  document.querySelectorAll('input[type="file"][id^="imageInputEdit"]').forEach(function(input) {
+  // Event listeners for Edit Student image inputs
+  document.querySelectorAll('.image-input-edit').forEach(function(input) {
     input.addEventListener('change', function(event) {
       currentInput = event.target;
       const studentId = input.dataset.studentId;
       const hiddenInputId = `croppedImageEdit${studentId}`;
-      handleImageSelect(event, hiddenInputId);
+      const previewId = `previewEdit${studentId}`;
+      handleImageSelect(event, hiddenInputId, previewId);
     });
   });
+
+  // Prevent closing the Add/Edit modals when clicking outside
+  // This is already handled by data-bs-backdrop="static" and data-bs-keyboard="false"
+  // in the modal definitions above
 </script>
 
 {% endblock %}
