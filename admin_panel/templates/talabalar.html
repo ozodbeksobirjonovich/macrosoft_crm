@@ -8,7 +8,7 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
-<!-- Custom CSS to Adjust Z-Index for Crop Image Modal -->
+<!-- Custom CSS for Styling -->
 <style>
   /* Ensure Crop Image Modal appears above other modals */
   .crop-image-modal {
@@ -24,30 +24,27 @@
     background-color: rgba(0, 0, 0, 0.5);
   }
 
-  /* Hide the default file input text */
-  .custom-file-input::file-selector-button {
-    margin-right: 0.5rem;
-    padding: 0.375rem 0.75rem;
-    background-color: #0d6efd;
-    color: white;
-    border: none;
-    border-radius: 0.25rem;
+  /* Styling for Drag-and-Drop Area */
+  .drag-drop-area {
+    border: 2px dashed #6c757d;
+    border-radius: 5px;
+    padding: 20px;
+    text-align: center;
+    color: #6c757d;
     cursor: pointer;
+    transition: background-color 0.3s, border-color 0.3s;
   }
 
-  .custom-file-input::file-selector-button:hover {
-    background-color: #0b5ed7;
+  .drag-drop-area.dragover {
+    background-color: #e9ecef;
+    border-color: #0d6efd;
+    color: #0d6efd;
   }
 
-  /* Hide the default file input appearance */
-  .custom-file-input {
-    cursor: pointer;
-    width: 100%;
-  }
-
-  /* Position the preview images */
+  /* Image Preview Styling */
   .image-preview {
     margin-top: 10px;
+    text-align: center;
   }
 
   .image-preview img {
@@ -58,7 +55,7 @@
     border-radius: 4px;
   }
 
-  /* Informative text */
+  /* Informative Text */
   .info-text {
     font-size: 0.9rem;
     color: #6c757d;
@@ -160,7 +157,10 @@
                       </div>
                       <div class="mb-3">
                         <label for="edit-image{{ student.id }}" class="form-label">Foto</label>
-                        <input type="file" class="form-control image-input-edit" id="imageInputEdit{{ student.id }}" data-student-id="{{ student.id }}" accept="image/*">
+                        <div class="drag-drop-area" id="dragDropEdit{{ student.id }}">
+                          <p>Rasmni shu yerga torting yoki ustiga bosing</p>
+                          <input type="file" class="form-control image-input-edit" id="imageInputEdit{{ student.id }}" data-student-id="{{ student.id }}" accept="image/*" style="display: none;">
+                        </div>
                         <input type="hidden" name="cropped_image" id="croppedImageEdit{{ student.id }}">
                         {% if student.image %}
                           <img src="{{ student.image.url }}" alt="Current Foto" class="img-thumbnail mt-2" width="100">
@@ -227,7 +227,10 @@
           </div>
           <div class="mb-3">
             <label for="image" class="form-label">Foto</label>
-            <input type="file" class="form-control image-input-add" id="imageInputAdd" accept="image/*" style="display: none;">
+            <div class="drag-drop-area" id="dragDropAdd">
+              <p>Rasmni shu yerga torting yoki ustiga bosing</p>
+              <input type="file" class="form-control image-input-add" id="imageInputAdd" accept="image/*" style="display: none;">
+            </div>
             <input type="hidden" name="cropped_image" id="croppedImageAdd">
             <!-- Preview of Cropped Image -->
             <div class="image-preview">
@@ -273,25 +276,22 @@
   let currentPreview = null;
 
   // Function to handle image selection and open crop modal
-  function handleImageSelect(event, hiddenInputId, previewId) {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const image = document.getElementById('imageToCrop');
-        image.src = e.target.result;
-        image.style.display = 'block';
-        targetHiddenInput = document.getElementById(hiddenInputId);
-        currentPreview = document.getElementById(previewId);
-        // Show the crop modal
-        const cropModal = new bootstrap.Modal(document.getElementById('cropImageModal'), {
-          backdrop: 'static',
-          keyboard: false
-        });
-        cropModal.show();
-      };
-      reader.readAsDataURL(files[0]);
-    }
+  function handleImageSelect(file, hiddenInputId, previewId) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const image = document.getElementById('imageToCrop');
+      image.src = e.target.result;
+      image.style.display = 'block';
+      targetHiddenInput = document.getElementById(hiddenInputId);
+      currentPreview = document.getElementById(previewId);
+      // Show the crop modal
+      const cropModal = new bootstrap.Modal(document.getElementById('cropImageModal'), {
+        backdrop: 'static',
+        keyboard: false
+      });
+      cropModal.show();
+    };
+    reader.readAsDataURL(file);
   }
 
   // Initialize Cropper.js when the crop modal is shown
@@ -318,9 +318,10 @@
     const image = document.getElementById('imageToCrop');
     image.src = '';
     image.style.display = 'none';
-    // Clear the file input
+    // Reset the file input
     if (currentInput) {
       currentInput.value = '';
+      currentInput.parentElement.classList.remove('dragover');
     }
   });
 
@@ -328,97 +329,153 @@
   document.getElementById('cropButton').addEventListener('click', function () {
     if (cropper) {
       cropper.getCroppedCanvas().toBlob(function(blob) {
-        const reader = new FileReader();
-        reader.onloadend = function() {
-          // Set the cropped image data to the hidden input
-          targetHiddenInput.value = reader.result;
+        // Create a new File from the Blob
+        const croppedFile = new File([blob], 'cropped_image.jpg', { type: 'image/jpeg' });
 
-          // Set the preview image source
-          if (currentPreview) {
-            currentPreview.src = reader.result;
-            currentPreview.style.display = 'block';
-          }
+        // Update the hidden input with the Blob
+        targetHiddenInput.files = null; // Ensure no file is directly set
+        targetHiddenInput.value = ''; // Reset the value
 
-          // Optionally, hide the original file input
-          if (currentInput) {
-            currentInput.style.display = 'none';
-          }
+        // Create a new File object URL for preview
+        const previewURL = URL.createObjectURL(croppedFile);
+        if (currentPreview) {
+          currentPreview.src = previewURL;
+          currentPreview.style.display = 'block';
+        }
 
-          // Hide the crop modal
-          const cropModalElement = document.getElementById('cropImageModal');
-          const cropModal = bootstrap.Modal.getInstance(cropModalElement);
-          cropModal.hide();
-        };
-        reader.readAsDataURL(blob);
+        // Store the Blob in a global variable for form submission
+        currentInput.croppedFile = croppedFile;
+
+        // Hide the crop modal
+        const cropModalElement = document.getElementById('cropImageModal');
+        const cropModal = bootstrap.Modal.getInstance(cropModalElement);
+        cropModal.hide();
       }, 'image/jpeg');
     }
   });
 
-  // Event listener for Add Student image input
-  document.getElementById('imageInputAdd').addEventListener('change', function(event) {
-    currentInput = event.target;
-    const hiddenInputId = 'croppedImageAdd';
-    const previewId = 'previewAdd';
-    handleImageSelect(event, hiddenInputId, previewId);
+  // Event listener for Add Student drag-and-drop area
+  const dragDropAdd = document.getElementById('dragDropAdd');
+  dragDropAdd.addEventListener('click', () => {
+    document.getElementById('imageInputAdd').click();
   });
 
-  // Event listeners for Edit Student image inputs
-  document.querySelectorAll('.image-input-edit').forEach(function(input) {
-    input.addEventListener('change', function(event) {
+  dragDropAdd.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dragDropAdd.classList.add('dragover');
+  });
+
+  dragDropAdd.addEventListener('dragleave', () => {
+    dragDropAdd.classList.remove('dragover');
+  });
+
+  dragDropAdd.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dragDropAdd.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      currentInput = document.getElementById('imageInputAdd');
+      const hiddenInputId = 'croppedImageAdd';
+      const previewId = 'previewAdd';
+      handleImageSelect(file, hiddenInputId, previewId);
+    }
+  });
+
+  // Event listener for Add Student file input
+  document.getElementById('imageInputAdd').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file) {
       currentInput = event.target;
-      const studentId = input.dataset.studentId;
-      const hiddenInputId = `croppedImageEdit${studentId}`;
-      const previewId = `previewEdit${studentId}`;
-      handleImageSelect(event, hiddenInputId, previewId);
+      const hiddenInputId = 'croppedImageAdd';
+      const previewId = 'previewAdd';
+      handleImageSelect(file, hiddenInputId, previewId);
+    }
+  });
+
+  // Event listeners for Edit Student drag-and-drop areas
+  document.querySelectorAll('.drag-drop-area[id^="dragDropEdit"]').forEach(function(area) {
+    area.addEventListener('click', () => {
+      const studentId = area.id.replace('dragDropEdit', '');
+      document.getElementById(`imageInputEdit${studentId}`).click();
+    });
+
+    area.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      area.classList.add('dragover');
+    });
+
+    area.addEventListener('dragleave', () => {
+      area.classList.remove('dragover');
+    });
+
+    area.addEventListener('drop', (e) => {
+      e.preventDefault();
+      area.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        const file = files[0];
+        const studentId = area.id.replace('dragDropEdit', '');
+        const input = document.getElementById(`imageInputEdit${studentId}`);
+        const hiddenInputId = `croppedImageEdit${studentId}`;
+        const previewId = `previewEdit${studentId}`;
+        currentInput = input;
+        handleImageSelect(file, hiddenInputId, previewId);
+      }
     });
   });
 
-  // Handle form submission to include cropped image
+  // Event listeners for Edit Student file inputs
+  document.querySelectorAll('.image-input-edit').forEach(function(input) {
+    input.addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const studentId = event.target.dataset.studentId;
+        const hiddenInputId = `croppedImageEdit${studentId}`;
+        const previewId = `previewEdit${studentId}`;
+        currentInput = event.target;
+        handleImageSelect(file, hiddenInputId, previewId);
+      }
+    });
+  });
+
+  // Handle form submission for Add Student
   document.getElementById('addStudentForm').addEventListener('submit', function(event) {
     event.preventDefault(); // Prevent default form submission
 
     const form = event.target;
     const formData = new FormData(form);
 
-    // Get the cropped image data from the hidden input
-    const croppedImageData = document.getElementById('croppedImageAdd').value;
-
-    if (croppedImageData) {
-      // Convert Base64 string to Blob
-      fetch(croppedImageData)
-        .then(res => res.blob())
-        .then(blob => {
-          // Append the Blob to the FormData as a File
-          formData.append('image', blob, 'cropped_image.jpg');
-
-          // Send the form data via fetch
-          fetch(form.action, {
-            method: 'POST',
-            headers: {
-              'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
-            },
-            body: formData
-          })
-          .then(response => {
-            if (response.ok) {
-              // Optionally, redirect or show a success message
-              window.location.href = "{% url 'admin_panel:students' %}";
-            } else {
-              // Handle errors
-              alert('Forma yuborishda xatolik yuz berdi.');
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            alert('Forma yuborishda xatolik yuz berdi.');
-          });
-        });
-    } else {
-      alert('Iltimos, rasmni tanlang va kesing.');
+    // Append the cropped image if available
+    const croppedFile = document.getElementById('imageInputAdd').croppedFile;
+    if (croppedFile) {
+      formData.append('image', croppedFile, 'cropped_image.jpg');
     }
+
+    // Send the form data via fetch
+    fetch(form.action, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+      },
+      body: formData
+    })
+    .then(response => {
+      if (response.ok) {
+        // Optionally, redirect or show a success message
+        window.location.href = "{% url 'admin_panel:students' %}";
+      } else {
+        // Handle errors
+        alert('Forma yuborishda xatolik yuz berdi.');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Forma yuborishda xatolik yuz berdi.');
+    });
   });
 
-  // Similar form submission handling for edit forms
+  // Handle form submission for Edit Student forms
   document.querySelectorAll('form[id^="editStudentForm"]').forEach(function(form) {
     form.addEventListener('submit', function(event) {
       event.preventDefault(); // Prevent default form submission
@@ -426,43 +483,34 @@
       const form = event.target;
       const formData = new FormData(form);
 
-      // Get the cropped image data from the hidden input
-      const croppedImageInput = form.querySelector('input[name="cropped_image"]');
-      const croppedImageData = croppedImageInput.value;
-
-      if (croppedImageData) {
-        // Convert Base64 string to Blob
-        fetch(croppedImageData)
-          .then(res => res.blob())
-          .then(blob => {
-            // Append the Blob to the FormData as a File
-            formData.append('image', blob, 'cropped_image.jpg');
-
-            // Send the form data via fetch
-            fetch(form.action, {
-              method: 'POST',
-              headers: {
-                'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
-              },
-              body: formData
-            })
-            .then(response => {
-              if (response.ok) {
-                // Optionally, redirect or show a success message
-                window.location.href = "{% url 'admin_panel:students' %}";
-              } else {
-                // Handle errors
-                alert('Forma yuborishda xatolik yuz berdi.');
-              }
-            })
-            .catch(error => {
-              console.error('Error:', error);
-              alert('Forma yuborishda xatolik yuz berdi.');
-            });
-          });
-      } else {
-        alert('Iltimos, rasmni tanlang va kesing.');
+      // Append the cropped image if available
+      const hiddenInput = form.querySelector('input[name="cropped_image"]');
+      const croppedFile = hiddenInput ? hiddenInput.croppedFile : null;
+      if (croppedFile) {
+        formData.append('image', croppedFile, 'cropped_image.jpg');
       }
+
+      // Send the form data via fetch
+      fetch(form.action, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+        },
+        body: formData
+      })
+      .then(response => {
+        if (response.ok) {
+          // Optionally, redirect or show a success message
+          window.location.href = "{% url 'admin_panel:students' %}";
+        } else {
+          // Handle errors
+          alert('Forma yuborishda xatolik yuz berdi.');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Forma yuborishda xatolik yuz berdi.');
+      });
     });
   });
 </script>
